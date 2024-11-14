@@ -45,7 +45,24 @@ def compute_ba_residuals(parameters: np.ndarray, intrinsics: np.ndarray, num_cam
     HINT: I used np.matmul; np.sum; np.sqrt; np.square, np.concatenate etc.
     """
     
+    # 提取对应的3D点
+    selected_points3d = points3d[points3d_idxs]
 
+    # 齐次化3D点
+    homo_3d_points = np.concatenate((selected_points3d, np.ones((selected_points3d.shape[0], 1))), axis=1)
+    homo_3d_points_T = np.transpose(homo_3d_points)
+
+    # 计算投影矩阵
+    selected_extrinsics = extrinsics[camera_idxs]
+    P = np.matmul(intrinsics, selected_extrinsics)
+
+    # 使用对应的投影矩阵重新投影2D点
+    calculated_points2d = np.einsum('ijk,ki->ij', P, homo_3d_points_T)
+    calculated_points2d /= calculated_points2d[:, -1].reshape((calculated_points2d.shape[0], 1))
+    calculated_points2d = calculated_points2d[:, :-1]
+
+    # 计算残差
+    residuals = np.linalg.norm(points2d - calculated_points2d, axis=1)
     
     """ END YOUR CODE HERE """
     return residuals
